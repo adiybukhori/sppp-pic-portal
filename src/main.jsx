@@ -1,11 +1,10 @@
-@import "tailwindcss";
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App.jsx";
+import "./index.css"; // 🔥 INI WAJIB ADA
 
-html, body, #root {
-margin: 0;
-min-height: 100%;
-}
-
-body {
-background: #f1f5f9;
-font-family: Inter, Arial, sans-serif;
-}
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
