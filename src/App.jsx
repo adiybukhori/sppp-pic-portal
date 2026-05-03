@@ -94,18 +94,16 @@ export default function PICPortalPreview() {
       const list = (data.students || []).map(normalizeStudent);
       setStudents(list);
 
-      if (selectedId) {
-        const existing = list.find((s) => s.id === selectedId);
+      if (list.length > 0) {
+        const currentId = selectedId || list[0].id;
+        const existing = list.find((s) => s.id === currentId);
+      
+        setSelectedId(currentId);
+      
         if (existing) {
           setPaymentInput(existing.paidAmount || 0);
         }
       }
-    } catch (err) {
-      setError("Unable to connect to backend API.");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   useEffect(() => {
     loadStudents();
