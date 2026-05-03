@@ -339,7 +339,7 @@ export default function PICPortalPreview() {
                       <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
                         <tr>
                           <th className="text-left p-3">Subject</th>
-                          <th className="text-left p-3 w-44">Status</th>
+                          <th className="text-left p-3 w-36">Status</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -353,7 +353,7 @@ export default function PICPortalPreview() {
                               <select
                                 value={subject.status}
                                 onChange={(e) => updateSubject(subject.code, e.target.value)}
-                                className="w-full rounded-xl border border-slate-200 p-2 bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
                               >
                                 <option>Not Yet</option>
                                 <option>Ongoing</option>
