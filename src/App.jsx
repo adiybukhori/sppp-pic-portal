@@ -187,6 +187,36 @@ export default function PICPortalPreview() {
     }
   }
 
+  async function loadDefaultSubjects() {
+    if (!selected) return;
+
+    setSaved(false);
+    setError("");
+
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "initializeStudentSubjects",
+          studentId: selected.id,
+          program: selected.program,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        setError(data.message || "Unable to load default subjects.");
+        return;
+      }
+
+      setSaved(true);
+      await loadStudents();
+    } catch (err) {
+      setError("Unable to initialize subject list.");
+    }
+  }
+
   if (loading) {
     return <div className="min-h-screen bg-slate-100 flex items-center justify-center text-slate-600">Loading PIC Portal...</div>;
   }
@@ -340,7 +370,7 @@ export default function PICPortalPreview() {
                       <p className="mt-1 text-sm text-slate-500">
                         Click below to load the standard subject structure for this programme.
                       </p>
-                  
+
                       <Button
                         onClick={loadDefaultSubjects}
                         className="mt-4 rounded-full bg-blue-950 hover:bg-blue-900 px-6"
@@ -358,7 +388,7 @@ export default function PICPortalPreview() {
                             <th className="text-left p-3 w-36">Status</th>
                           </tr>
                         </thead>
-                  
+
                         <tbody>
                           {[...selected.subjects]
                             .sort((a, b) => Number(a.displayOrder || 999) - Number(b.displayOrder || 999))
@@ -368,7 +398,7 @@ export default function PICPortalPreview() {
                                   <p className="font-semibold text-slate-900">{subject.code}</p>
                                   <p className="text-xs text-slate-500">{subject.name}</p>
                                 </td>
-                  
+
                                 <td className="p-3">
                                   <Input
                                     type="number"
@@ -392,7 +422,7 @@ export default function PICPortalPreview() {
                                     className="w-16 rounded-xl border border-slate-200 bg-white text-sm shadow-sm"
                                   />
                                 </td>
-                  
+
                                 <td className="p-3">
                                   <select
                                     value={subject.status}
@@ -480,36 +510,6 @@ export default function PICPortalPreview() {
       </main>
     </div>
   );
-}
-
-async function loadDefaultSubjects() {
-  if (!selected) return;
-
-  setSaved(false);
-  setError("");
-
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        action: "initializeStudentSubjects",
-        studentId: selected.id,
-        program: selected.program,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (!data.success) {
-      setError(data.message || "Unable to load default subjects.");
-      return;
-    }
-
-    setSaved(true);
-    await loadStudents();
-  } catch (err) {
-    setError("Unable to initialize subject list.");
-  }
 }
 
 function Stat({ title, value, danger }) {
