@@ -358,6 +358,7 @@ export default function PICPortalPreview() {
                             <th className="text-left p-3 w-36">Status</th>
                           </tr>
                         </thead>
+                  
                         <tbody>
                           {[...selected.subjects]
                             .sort((a, b) => Number(a.displayOrder || 999) - Number(b.displayOrder || 999))
@@ -409,23 +410,6 @@ export default function PICPortalPreview() {
                       </table>
                     </div>
                   )}
-                            
-                            <td className="p-3">
-                              <select
-                                value={subject.status}
-                                onChange={(e) => updateSubject(subject.code, e.target.value)}
-                                className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
-                              >
-                                <option>Not Yet</option>
-                                <option>Ongoing</option>
-                                <option>Taken</option>
-                              </select>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
                 </CardContent>
               </Card>
 
