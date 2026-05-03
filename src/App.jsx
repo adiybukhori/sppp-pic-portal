@@ -94,9 +94,11 @@ export default function PICPortalPreview() {
       const list = (data.students || []).map(normalizeStudent);
       setStudents(list);
 
-      if (list.length > 0) {
-        setSelectedId(list[0].id);
-        setPaymentInput(list[0].paidAmount || 0);
+      if (selectedId) {
+        const existing = list.find((s) => s.id === selectedId);
+        if (existing) {
+          setPaymentInput(existing.paidAmount || 0);
+        }
       }
     } catch (err) {
       setError("Unable to connect to backend API.");
@@ -109,7 +111,7 @@ export default function PICPortalPreview() {
     loadStudents();
   }, []);
 
-  const selected = students.find((s) => s.id === selectedId) || students[0];
+  const selected = students.find((s) => s.id === selectedId);
   const selectedFee = selected ? calculateFee(selected) : null;
 
   const overall = useMemo(() => {
@@ -180,8 +182,7 @@ export default function PICPortalPreview() {
         return;
       }
 
-      setSaved(true);
-      await loadStudents();
+      await loadStudents()
     } catch (err) {
       setError("Unable to save update.");
     }
