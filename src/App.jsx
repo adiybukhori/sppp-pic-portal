@@ -253,7 +253,7 @@ export default function PICPortalPreview() {
                 ))}
               </div>
 
-              <div className="space-y-3 max-h-[640px] overflow-auto pr-1">
+              <div className="space-y-2 max-h-[760px] overflow-y-auto pr-2 pb-4">
                 {filteredStudents.map((student) => {
                   const fee = calculateFee(student);
                   return (
@@ -264,7 +264,7 @@ export default function PICPortalPreview() {
                         setPaymentInput(student.paidAmount);
                         setSaved(false);
                       }}
-                      className={`p-4 rounded-2xl border cursor-pointer transition shadow-sm ${
+                      className={`p-3 rounded-2xl border cursor-pointer transition shadow-sm ${
                         selected.id === student.id
                           ? "bg-blue-50 border-blue-300"
                           : "bg-white border-slate-200 hover:bg-slate-50"
@@ -278,12 +278,12 @@ export default function PICPortalPreview() {
                         <span className={`text-[11px] px-2 py-1 rounded-full font-semibold ${badgeClass(fee.paymentStatus)}`}>{fee.paymentStatus}</span>
                       </div>
 
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                        <div className="rounded-xl bg-slate-50 border border-slate-100 p-2">
+                      <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-xl bg-slate-50 border border-slate-100 px-2 py-1.5">
                           <p className="text-slate-500">Outstanding</p>
                           <p className={fee.outstanding > 0 ? "font-bold text-red-600" : "font-bold text-emerald-700"}>{money(fee.outstanding)}</p>
                         </div>
-                        <div className="rounded-xl bg-slate-50 border border-slate-100 p-2">
+                        <div className="rounded-xl bg-slate-50 border border-slate-100 px-2 py-1.5">
                           <p className="text-slate-500">LMS</p>
                           <p className={student.lmsStatus === "Blocked" ? "font-bold text-red-600" : "font-bold text-slate-900"}>{student.lmsStatus}</p>
                         </div>
