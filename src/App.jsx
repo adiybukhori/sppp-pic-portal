@@ -264,8 +264,10 @@ export default function PICPortalPreview() {
                         setPaymentInput(student.paidAmount);
                         setSaved(false);
                       }}
-                      className={`p-4 rounded-2xl border cursor-pointer transition ${
-                        selected.id === student.id ? "bg-blue-50 border-blue-400" : "bg-white hover:bg-slate-50"
+                      className={`p-4 rounded-2xl border cursor-pointer transition shadow-sm ${
+                        selected.id === student.id
+                          ? "bg-blue-50 border-blue-300"
+                          : "bg-white border-slate-200 hover:bg-slate-50"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -277,11 +279,11 @@ export default function PICPortalPreview() {
                       </div>
 
                       <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                        <div className="rounded-xl bg-slate-50 p-2">
+                        <div className="rounded-xl bg-slate-50 border border-slate-100 p-2">
                           <p className="text-slate-500">Outstanding</p>
                           <p className={fee.outstanding > 0 ? "font-bold text-red-600" : "font-bold text-emerald-700"}>{money(fee.outstanding)}</p>
                         </div>
-                        <div className="rounded-xl bg-slate-50 p-2">
+                        <div className="rounded-xl bg-slate-50 border border-slate-100 p-2">
                           <p className="text-slate-500">LMS</p>
                           <p className={student.lmsStatus === "Blocked" ? "font-bold text-red-600" : "font-bold text-slate-900"}>{student.lmsStatus}</p>
                         </div>
