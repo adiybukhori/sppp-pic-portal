@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbzj4-N1l_B7wNT5KPEgqIPo3GMh67SCf42ANzxPldiJN3FbJdJ0fRUa-bm80W-Q-RZf/exec";
+  "https://script.google.com/macros/s/AKfycbwbFFgoCoI6ynV1_PxiE5ObnGUKm6IbqNAA-a-8fiWR-TB7I0clL4m7D6bnFNBMDstg/exec";
 
 function money(n) {
   return new Intl.NumberFormat("en-MY", {
@@ -21,26 +21,6 @@ function badgeClass(value) {
   return "bg-slate-100 text-slate-600";
 }
 
-function calculateFee(student) {
-  const subjects = student.subjects || [];
-  const totalFee = Number(student.totalFee || 0);
-  const totalModule = Number(student.totalModule || subjects.length || 1);
-  const feePerModule = Number(student.feePerModule || totalFee / totalModule || 0);
-
-  const taken = subjects.filter((s) => s.status === "Taken").length;
-  const ongoing = subjects.filter((s) => s.status === "Ongoing").length;
-  const notYet = subjects.filter((s) => s.status === "Not Started").length;
-  const chargeable = taken + ongoing;
-  const shouldPay = chargeable * feePerModule;
-  const paidAmount = Number(student.paidAmount || 0);
-  const outstanding = Math.max(shouldPay - paidAmount, 0);
-
-  const paymentStatus =
-    chargeable === 0 ? "No Module Yet" : paidAmount <= 0 ? "Unpaid" : paidAmount < shouldPay ? "Partially Paid" : "Clear";
-
-  return { feePerModule, taken, ongoing, notYet, chargeable, shouldPay, outstanding, paymentStatus };
-}
-
 function normalizeStudent(raw) {
   return {
     id: raw.id || raw["Student ID"] || "",
@@ -54,8 +34,8 @@ function normalizeStudent(raw) {
     totalModule: Number(raw.totalModule || raw["Total Module"] || 0),
     feePerModule: Number(raw.feePerModule || raw["Fee Per Module"] || 0),
     paidAmount: Number(raw.paidAmount || raw["Paid Amount"] || 0),
-    registrationFee: Number(raw.registrationFee || raw["Registration Fee"] || 300),
-    convocationFee: Number(raw.convocationFee || raw["Convocation Fee"] || 700),
+    outstanding: Number(raw.outstanding || raw["Outstanding"] || 0),
+    paymentStatus: raw.paymentStatus || raw["Payment Status"] || "",
     lmsStatus: raw.lmsStatus || raw["LMS Status"] || "Pending Update",
     picRemark: raw.picRemark || raw["PIC Remark"] || "",
     subjects: (raw.subjects || []).map((s) => ({
@@ -67,6 +47,29 @@ function normalizeStudent(raw) {
   };
 }
 
+function calculateFee(student) {
+  const subjects = student.subjects || [];
+  const totalFee = Number(student.totalFee || 0);
+  const totalModule = Number(student.totalModule || subjects.length || 1);
+  const feePerModule = Number(student.feePerModule || totalFee / totalModule || 0);
+
+  const taken = subjects.filter((s) => s.status === "Taken").length;
+  const ongoing = subjects.filter((s) => s.status === "Ongoing").length;
+  const notYet = subjects.filter((s) => s.status === "Not Started").length;
+  const chargeable = subjects.length > 0 ? taken + ongoing : 0;
+  const shouldPay = chargeable * feePerModule;
+  const paidAmount = Number(student.paidAmount || 0);
+
+  const outstanding =
+    subjects.length > 0 ? Math.max(shouldPay - paidAmount, 0) : Number(student.outstanding || 0);
+
+  const paymentStatus =
+    student.paymentStatus ||
+    (chargeable === 0 ? "No Module Yet" : paidAmount <= 0 ? "Unpaid" : paidAmount < shouldPay ? "Partially Paid" : "Clear");
+
+  return { feePerModule, taken, ongoing, notYet, chargeable, shouldPay, paidAmount, outstanding, paymentStatus };
+}
+
 export default function PICPortalPreview() {
   const [students, setStudents] = useState([]);
   const [selectedId, setSelectedId] = useState("");
@@ -75,34 +78,64 @@ export default function PICPortalPreview() {
   const [saved, setSaved] = useState(false);
   const [paymentInput, setPaymentInput] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState("");
+
+  async function loadStudentDetail(studentId) {
+    if (!studentId) return;
+
+    setDetailLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch(
+        API_URL + "?action=getStudentDetail&studentId=" + encodeURIComponent(studentId)
+      );
+      const data = await res.json();
+
+      if (!data.success) {
+        setError(data.message || "Unable to load student detail.");
+        return;
+      }
+
+      const detail = normalizeStudent(data.student);
+
+      setStudents((prev) =>
+        prev.map((s) => (s.id === studentId ? { ...s, ...detail } : s))
+      );
+
+      setSelectedId(studentId);
+      setPaymentInput(detail.paidAmount || 0);
+      setSaved(false);
+    } catch (err) {
+      setError("Unable to load student detail.");
+    } finally {
+      setDetailLoading(false);
+    }
+  }
 
   async function loadStudents() {
     setLoading(true);
     setError("");
-  
+
     try {
       const res = await fetch(API_URL + "?action=getStudents");
       const data = await res.json();
-  
+
       if (!data.success) {
         setError(data.message || "Unable to load student data.");
-        setLoading(false);
         return;
       }
-  
+
       const list = (data.students || []).map(normalizeStudent);
       setStudents(list);
-  
+
       if (list.length > 0) {
         const currentId = selectedId || list[0].id;
-        const existing = list.find((s) => s.id === currentId);
-  
         setSelectedId(currentId);
-  
-        if (existing) {
-          setPaymentInput(existing.paidAmount || 0);
-        }
+        const existing = list.find((s) => s.id === currentId);
+        setPaymentInput(existing?.paidAmount || 0);
+        await loadStudentDetail(currentId);
       }
     } catch (err) {
       setError("Unable to connect to backend API.");
@@ -110,6 +143,32 @@ export default function PICPortalPreview() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    loadStudents();
+  }, []);
+
+  const selected = students.find((s) => s.id === selectedId);
+  const selectedFee = selected ? calculateFee(selected) : null;
+
+  const overall = useMemo(() => {
+    const blocked = students.filter((s) => s.lmsStatus === "Blocked").length;
+    const totalOutstanding = students.reduce((sum, s) => sum + calculateFee(s).outstanding, 0);
+    const clear = students.filter((s) => calculateFee(s).paymentStatus === "Clear").length;
+    return { total: students.length, blocked, totalOutstanding, clear };
+  }, [students]);
+
+  const filteredStudents = students.filter((student) => {
+    const fee = calculateFee(student);
+    const keyword = `${student.name} ${student.id} ${student.ic}`.toLowerCase();
+    const matchSearch = keyword.includes(search.toLowerCase());
+    const matchFilter =
+      filter === "All" ||
+      (filter === "Outstanding" && fee.outstanding > 0) ||
+      (filter === "LMS Blocked" && student.lmsStatus === "Blocked") ||
+      (filter === "Clear" && fee.paymentStatus === "Clear");
+    return matchSearch && matchFilter;
+  });
 
   function updateSelected(updates) {
     setSaved(false);
@@ -160,7 +219,8 @@ export default function PICPortalPreview() {
         return;
       }
 
-      await loadStudents()
+      setSaved(true);
+      await loadStudentDetail(selected.id);
     } catch (err) {
       setError("Unable to save update.");
     }
@@ -190,7 +250,7 @@ export default function PICPortalPreview() {
       }
 
       setSaved(true);
-      await loadStudents();
+      await loadStudentDetail(selected.id);
     } catch (err) {
       setError("Unable to initialize subject list.");
     }
@@ -268,11 +328,7 @@ export default function PICPortalPreview() {
                   return (
                     <div
                       key={student.id}
-                      onClick={() => {
-                        setSelectedId(student.id);
-                        setPaymentInput(student.paidAmount);
-                        setSaved(false);
-                      }}
+                      onClick={() => loadStudentDetail(student.id)}
                       className={`p-3 rounded-2xl border cursor-pointer transition shadow-sm ${
                         selected.id === student.id
                           ? "bg-blue-50 border-blue-300"
@@ -307,24 +363,30 @@ export default function PICPortalPreview() {
           <div className="lg:col-span-8 space-y-6">
             <Card className="rounded-3xl border border-slate-200 shadow-sm">
               <CardContent className="p-6">
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-900">{selected.name}</h2>
-                    <p className="text-sm text-slate-500">{selected.id} · {selected.ic}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full bg-blue-100 text-blue-700 px-3 py-1 text-xs font-bold">{selected.program}</span>
-                    <span className="rounded-full bg-slate-100 text-slate-700 px-3 py-1 text-xs font-bold">{selected.category}</span>
-                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${badgeClass(selected.lmsStatus)}`}>LMS: {selected.lmsStatus}</span>
-                  </div>
-                </div>
+                {detailLoading ? (
+                  <p className="text-sm text-slate-500">Loading student detail...</p>
+                ) : (
+                  <>
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                      <div>
+                        <h2 className="text-2xl font-bold text-slate-900">{selected.name}</h2>
+                        <p className="text-sm text-slate-500">{selected.id} · {selected.ic}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="rounded-full bg-blue-100 text-blue-700 px-3 py-1 text-xs font-bold">{selected.program}</span>
+                        <span className="rounded-full bg-slate-100 text-slate-700 px-3 py-1 text-xs font-bold">{selected.category}</span>
+                        <span className={`rounded-full px-3 py-1 text-xs font-bold ${badgeClass(selected.lmsStatus)}`}>LMS: {selected.lmsStatus}</span>
+                      </div>
+                    </div>
 
-                <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <MiniInfo label="Intake" value={selected.intake} />
-                  <MiniInfo label="Fee Group" value={selected.feeGroup} />
-                  <MiniInfo label="Chargeable" value={`${selectedFee.chargeable} module`} />
-                  <MiniInfo label="Outstanding" value={money(selectedFee.outstanding)} danger={selectedFee.outstanding > 0} />
-                </div>
+                    <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <MiniInfo label="Intake" value={selected.intake} />
+                      <MiniInfo label="Fee Group" value={selected.feeGroup} />
+                      <MiniInfo label="Chargeable" value={`${selectedFee.chargeable} module`} />
+                      <MiniInfo label="Outstanding" value={money(selectedFee.outstanding)} danger={selectedFee.outstanding > 0} />
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
 
@@ -343,7 +405,9 @@ export default function PICPortalPreview() {
                     </div>
                   </div>
 
-                  {selected.subjects.length === 0 ? (
+                  {detailLoading ? (
+                    <p className="text-sm text-slate-500">Loading subjects...</p>
+                  ) : selected.subjects.length === 0 ? (
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center shadow-sm">
                       <p className="font-bold text-slate-900">No subject assigned yet.</p>
                       <p className="mt-1 text-sm text-slate-500">
