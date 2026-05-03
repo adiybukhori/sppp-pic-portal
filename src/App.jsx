@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbzFcUH8XMXfUHZ-kSFfjFkzBen_lWL63Bdn0LyNAdb0_MmkLf74mTsulayQZm7LLZUX/exec";
+  "https://script.google.com/macros/s/AKfycbzlp0yP-NKtixeoBWAIusWCrVIOv7kJEzerrROuwBYxPpHRJaTElvEosqECBJseNjCR/exec";
 
 function money(n) {
   return new Intl.NumberFormat("en-MY", {
@@ -29,7 +29,7 @@ function calculateFee(student) {
 
   const taken = subjects.filter((s) => s.status === "Taken").length;
   const ongoing = subjects.filter((s) => s.status === "Ongoing").length;
-  const notYet = subjects.filter((s) => s.status === "Not Yet").length;
+  const notYet = subjects.filter((s) => s.status === "Not Started").length;
   const chargeable = taken + ongoing;
   const shouldPay = chargeable * feePerModule;
   const paidAmount = Number(student.paidAmount || 0);
@@ -61,7 +61,7 @@ function normalizeStudent(raw) {
     subjects: (raw.subjects || []).map((s) => ({
       code: s.code || s.subjectCode || s["Subject Code"],
       name: s.name || s.subjectName || s["Subject Name"],
-      status: s.status || s["Status"] || "Not Yet",
+      status: s.status || s["Status"] || "Not Started",
       displayOrder: s.displayOrder || s["Display Order"] || "",
     })),
   };
@@ -361,7 +361,7 @@ export default function PICPortalPreview() {
                     <div className="text-right text-xs text-slate-500">
                       <p>{selectedFee.taken} Taken</p>
                       <p>{selectedFee.ongoing} Ongoing</p>
-                      <p>{selectedFee.notYet} Not Yet</p>
+                      <p>{selectedFee.notYet} Not Started</p>
                     </div>
                   </div>
 
@@ -430,7 +430,7 @@ export default function PICPortalPreview() {
                                     onChange={(e) => updateSubject(subject.code, e.target.value)}
                                     className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
                                   >
-                                    <option>Not Yet</option>
+                                    <option>Not Started</option>
                                     <option>Ongoing</option>
                                     <option>Taken</option>
                                   </select>
