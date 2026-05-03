@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbzDUm286lXOB5o-bTFxzWkgi4ERvSNGmbpZ1cSgaupWD4hG1nf1S51kMs5NiQMhHGM/exec";
+  "https://script.google.com/macros/s/AKfycbytisjv4mLp9bW1CAu_93PsKpLlKD2LDSggVinQNwSQHhqAFzGix-R8a6bqpTWi0oDe/exec";
 
 function money(n) {
   return new Intl.NumberFormat("en-MY", {
