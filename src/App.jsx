@@ -428,7 +428,13 @@ export default function PICPortalPreview() {
                                   <select
                                     value={subject.status}
                                     onChange={(e) => updateSubject(subject.code, e.target.value)}
-                                    className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    className={`w-full rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100 ${
+                                      subject.status === "Taken"
+                                        ? "bg-emerald-100 text-emerald-700"
+                                        : subject.status === "Ongoing"
+                                        ? "bg-blue-100 text-blue-700"
+                                        : "bg-slate-100 text-slate-600"
+                                    }`}
                                   >
                                     <option>Not Started</option>
                                     <option>Ongoing</option>
