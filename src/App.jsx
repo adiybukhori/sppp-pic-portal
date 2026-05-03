@@ -332,9 +332,9 @@ export default function PICPortalPreview() {
                     </div>
                   </div>
 
-                  <div className="overflow-hidden rounded-2xl border bg-white">
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <table className="w-full text-sm">
-                      <thead className="bg-slate-50 text-slate-600">
+                      <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
                         <tr>
                           <th className="text-left p-3">Subject</th>
                           <th className="text-left p-3 w-44">Status</th>
@@ -342,7 +342,7 @@ export default function PICPortalPreview() {
                       </thead>
                       <tbody>
                         {selected.subjects.map((subject) => (
-                          <tr key={subject.code} className="border-t">
+                          <tr key={subject.code} className="border-t border-slate-200">
                             <td className="p-3">
                               <p className="font-semibold text-slate-900">{subject.code}</p>
                               <p className="text-xs text-slate-500">{subject.name}</p>
@@ -351,7 +351,7 @@ export default function PICPortalPreview() {
                               <select
                                 value={subject.status}
                                 onChange={(e) => updateSubject(subject.code, e.target.value)}
-                                className="w-full rounded-xl border p-2 bg-white"
+                                className="w-full rounded-xl border border-slate-200 p-2 bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
                               >
                                 <option>Not Yet</option>
                                 <option>Ongoing</option>
@@ -376,10 +376,10 @@ export default function PICPortalPreview() {
                       <Row label="Should Pay" value={money(selectedFee.shouldPay)} />
                       <Row label="Paid Amount" value={money(selected.paidAmount)} />
 
-                      <div className="rounded-2xl bg-slate-50 border p-3 space-y-2">
+                      <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-3 shadow-sm">
                         <label className="text-xs text-slate-500">Update Paid Amount</label>
-                        <Input type="number" value={paymentInput} onChange={(e) => setPaymentInput(e.target.value)} className="bg-white" />
-                        <Button variant="outline" className="w-full rounded-xl text-xs" onClick={() => updateSelected({ paidAmount: Number(paymentInput || 0) })}>
+                        <Input type="number" value={paymentInput} onChange={(e) => setPaymentInput(e.target.value)} className="bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100" />
+                        <Button variant="outline" className="w-full rounded-xl text-xs bg-white border border-slate-200 shadow-sm hover:bg-slate-50" onClick={() => updateSelected({ paidAmount: Number(paymentInput || 0) })}>
                           Update Paid Amount
                         </Button>
                       </div>
