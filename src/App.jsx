@@ -294,7 +294,7 @@ export default function PICPortalPreview() {
           </Card>
 
           <div className="lg:col-span-8 space-y-6">
-            <Card className="rounded-3xl shadow-sm">
+            <Card className="rounded-3xl border border-slate-200 shadow-sm">
               <CardContent className="p-6">
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                   <div>
@@ -367,7 +367,7 @@ export default function PICPortalPreview() {
               </Card>
 
               <div className="space-y-6">
-                <Card className="rounded-3xl shadow-sm">
+                <Card className="rounded-3xl border border-slate-200 shadow-sm">
                   <CardContent className="p-6">
                     <h3 className="font-bold text-lg mb-4">Payment Update</h3>
                     <div className="space-y-3 text-sm">
@@ -384,7 +384,7 @@ export default function PICPortalPreview() {
                         </Button>
                       </div>
 
-                      <div className="border-t pt-3">
+                      <div className="border-t border-slate-200 pt-3">
                         <Row label="Outstanding" value={money(selectedFee.outstanding)} strong danger={selectedFee.outstanding > 0} />
                         <div className="mt-2">
                           <span className={`rounded-full px-3 py-1 text-xs font-bold ${badgeClass(selectedFee.paymentStatus)}`}>
@@ -396,14 +396,14 @@ export default function PICPortalPreview() {
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-3xl shadow-sm">
+                <Card className="rounded-3xl border border-slate-200 shadow-sm">
                   <CardContent className="p-6 space-y-4">
                     <div>
                       <label className="text-xs text-slate-500">LMS Status</label>
                       <select
                         value={selected.lmsStatus}
                         onChange={(e) => updateSelected({ lmsStatus: e.target.value })}
-                        className="w-full mt-1 rounded-xl border p-2 bg-white"
+                        className="w-full mt-1 rounded-xl border border-slate-200 p-2 bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
                       >
                         <option>Active</option>
                         <option>Blocked</option>
@@ -416,7 +416,7 @@ export default function PICPortalPreview() {
                       <textarea
                         value={selected.picRemark}
                         onChange={(e) => updateSelected({ picRemark: e.target.value })}
-                        className="w-full mt-1 rounded-xl border p-3 min-h-24 text-sm"
+                        className="w-full mt-1 rounded-xl border border-slate-200 p-3 min-h-24 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
                       />
                     </div>
 
@@ -437,7 +437,7 @@ export default function PICPortalPreview() {
 
 function Stat({ title, value, danger }) {
   return (
-    <Card className="rounded-3xl shadow-sm">
+    <Card className="rounded-3xl border border-slate-200 shadow-sm">
       <CardContent className="p-5">
         <p className="text-xs text-slate-500">{title}</p>
         <p className={`mt-1 text-xl font-bold ${danger ? "text-red-600" : "text-slate-900"}`}>{value}</p>
