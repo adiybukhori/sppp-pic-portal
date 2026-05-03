@@ -80,6 +80,11 @@ export default function PICPortalPreview() {
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [programFilter, setProgramFilter] = useState("All");
 
   async function loadStudentDetail(studentId) {
     if (!studentId) return;
@@ -160,14 +165,20 @@ export default function PICPortalPreview() {
 
   const filteredStudents = students.filter((student) => {
     const fee = calculateFee(student);
+  
     const keyword = `${student.name} ${student.id} ${student.ic}`.toLowerCase();
     const matchSearch = keyword.includes(search.toLowerCase());
+  
+    const matchProgram =
+      programFilter === "All" || student.program === programFilter;
+  
     const matchFilter =
       filter === "All" ||
       (filter === "Outstanding" && fee.outstanding > 0) ||
       (filter === "LMS Blocked" && student.lmsStatus === "Blocked") ||
       (filter === "Clear" && fee.paymentStatus === "Clear");
-    return matchSearch && matchFilter;
+  
+    return matchSearch && matchFilter && matchProgram;
   });
 
   function updateSelected(updates) {
@@ -256,6 +267,60 @@ export default function PICPortalPreview() {
     }
   }
 
+    function handleLogin() {
+      if (username === "ipgs" && password === "ipgs2026") {
+        setIsLoggedIn(true);
+        setLoginError("");
+      } else {
+        setLoginError("Invalid username or password.");
+      }
+    }
+
+    if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 flex items-center justify-center p-6">
+        <Card className="w-full max-w-md rounded-3xl border border-slate-200 bg-white shadow-2xl">
+          <CardContent className="p-8">
+            <h1 className="text-2xl font-bold text-slate-900">PIC Update Portal</h1>
+            <p className="text-sm text-slate-500 mt-1">Login to continue</p>
+  
+            <div className="mt-6 space-y-4">
+              <div>
+                <label className="text-sm font-medium text-slate-700">Username</label>
+                <Input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="mt-2"
+                  placeholder="Username"
+                />
+              </div>
+  
+              <div>
+                <label className="text-sm font-medium text-slate-700">Password</label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="mt-2"
+                  placeholder="Password"
+                />
+              </div>
+  
+              {loginError && <p className="text-sm text-red-600">{loginError}</p>}
+  
+              <Button
+                onClick={handleLogin}
+                className="w-full rounded-2xl bg-blue-950 hover:bg-blue-900"
+              >
+                Login
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
   if (loading) {
     return <div className="min-h-screen bg-slate-100 flex items-center justify-center text-slate-600">Loading PIC Portal...</div>;
   }
@@ -289,7 +354,9 @@ export default function PICPortalPreview() {
           </div>
           <div className="flex gap-3">
             <Button variant="secondary" className="rounded-2xl" onClick={loadStudents}>Refresh Data</Button>
-            <Button variant="secondary" className="rounded-2xl">Logout</Button>
+            <Button variant="secondary" className="rounded-2xl" onClick={() => setIsLoggedIn(false)}>
+              Logout
+            </Button>
           </div>
         </div>
       </div>
@@ -309,6 +376,17 @@ export default function PICPortalPreview() {
             <CardContent className="p-5">
               <div className="mb-4">
                 <h2 className="font-bold text-lg">Student List</h2>
+                    <select
+                    value={programFilter}
+                    onChange={(e) => setProgramFilter(e.target.value)}
+                    className="w-full mt-2 rounded-xl border border-slate-200 p-2 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  >
+                    <option>All</option>
+                    <option>MBA</option>
+                    <option>MBM</option>
+                    <option>MHUM</option>
+                    <option>PhD</option>
+                  </select>
                 <p className="text-xs text-slate-500">PIC can only view students under assigned programme.</p>
               </div>
 
