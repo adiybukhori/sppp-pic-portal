@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbytisjv4mLp9bW1CAu_93PsKpLlKD2LDSggVinQNwSQHhqAFzGix-R8a6bqpTWi0oDe/exec";
+  "https://script.google.com/macros/s/AKfycbzIKn93JeW3IJasycu5W3DLRz7Hm0NAfa5uXPbobBd4bawATnbdUTpQCTnefgDW3tj-/exec";
 
 function money(n) {
   return new Intl.NumberFormat("en-MY", {
@@ -334,21 +334,82 @@ export default function PICPortalPreview() {
                     </div>
                   </div>
 
-                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    <table className="w-full text-sm">
-                      <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
-                        <tr>
-                          <th className="text-left p-3">Subject</th>
-                          <th className="text-left p-3 w-36">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selected.subjects.map((subject) => (
-                          <tr key={subject.code} className="border-t border-slate-200">
-                            <td className="p-3">
-                              <p className="font-semibold text-slate-900">{subject.code}</p>
-                              <p className="text-xs text-slate-500">{subject.name}</p>
-                            </td>
+                  {selected.subjects.length === 0 ? (
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center shadow-sm">
+                      <p className="font-bold text-slate-900">No subject assigned yet.</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Click below to load the standard subject structure for this programme.
+                      </p>
+                  
+                      <Button
+                        onClick={loadDefaultSubjects}
+                        className="mt-4 rounded-full bg-blue-950 hover:bg-blue-900 px-6"
+                      >
+                        Load Default Subjects
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
+                          <tr>
+                            <th className="text-left p-3">Subject</th>
+                            <th className="text-left p-3 w-24">Order</th>
+                            <th className="text-left p-3 w-36">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...selected.subjects]
+                            .sort((a, b) => Number(a.displayOrder || 999) - Number(b.displayOrder || 999))
+                            .map((subject) => (
+                              <tr key={subject.code} className="border-t border-slate-200">
+                                <td className="p-3">
+                                  <p className="font-semibold text-slate-900">{subject.code}</p>
+                                  <p className="text-xs text-slate-500">{subject.name}</p>
+                                </td>
+                  
+                                <td className="p-3">
+                                  <Input
+                                    type="number"
+                                    value={subject.displayOrder || ""}
+                                    onChange={(e) =>
+                                      setStudents((prev) =>
+                                        prev.map((s) =>
+                                          s.id === selected.id
+                                            ? {
+                                                ...s,
+                                                subjects: s.subjects.map((sub) =>
+                                                  sub.code === subject.code
+                                                    ? { ...sub, displayOrder: e.target.value }
+                                                    : sub
+                                                ),
+                                              }
+                                            : s
+                                        )
+                                      )
+                                    }
+                                    className="w-16 rounded-xl border border-slate-200 bg-white text-sm shadow-sm"
+                                  />
+                                </td>
+                  
+                                <td className="p-3">
+                                  <select
+                                    value={subject.status}
+                                    onChange={(e) => updateSubject(subject.code, e.target.value)}
+                                    className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                  >
+                                    <option>Not Yet</option>
+                                    <option>Ongoing</option>
+                                    <option>Taken</option>
+                                  </select>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                            
                             <td className="p-3">
                               <select
                                 value={subject.status}
@@ -435,6 +496,36 @@ export default function PICPortalPreview() {
       </main>
     </div>
   );
+}
+
+async function loadDefaultSubjects() {
+  if (!selected) return;
+
+  setSaved(false);
+  setError("");
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "initializeStudentSubjects",
+        studentId: selected.id,
+        program: selected.program,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      setError(data.message || "Unable to load default subjects.");
+      return;
+    }
+
+    setSaved(true);
+    await loadStudents();
+  } catch (err) {
+    setError("Unable to initialize subject list.");
+  }
 }
 
 function Stat({ title, value, danger }) {
