@@ -80,56 +80,36 @@ export default function PICPortalPreview() {
   async function loadStudents() {
     setLoading(true);
     setError("");
-
+  
     try {
       const res = await fetch(API_URL + "?action=getStudents");
       const data = await res.json();
-
+  
       if (!data.success) {
         setError(data.message || "Unable to load student data.");
         setLoading(false);
         return;
       }
-
+  
       const list = (data.students || []).map(normalizeStudent);
       setStudents(list);
-
+  
       if (list.length > 0) {
         const currentId = selectedId || list[0].id;
         const existing = list.find((s) => s.id === currentId);
-      
+  
         setSelectedId(currentId);
-      
+  
         if (existing) {
           setPaymentInput(existing.paidAmount || 0);
         }
       }
-
-  useEffect(() => {
-    loadStudents();
-  }, []);
-
-  const selected = students.find((s) => s.id === selectedId);
-  const selectedFee = selected ? calculateFee(selected) : null;
-
-  const overall = useMemo(() => {
-    const blocked = students.filter((s) => s.lmsStatus === "Blocked").length;
-    const totalOutstanding = students.reduce((sum, s) => sum + calculateFee(s).outstanding, 0);
-    const clear = students.filter((s) => calculateFee(s).paymentStatus === "Clear").length;
-    return { total: students.length, blocked, totalOutstanding, clear };
-  }, [students]);
-
-  const filteredStudents = students.filter((student) => {
-    const fee = calculateFee(student);
-    const keyword = `${student.name} ${student.id} ${student.ic}`.toLowerCase();
-    const matchSearch = keyword.includes(search.toLowerCase());
-    const matchFilter =
-      filter === "All" ||
-      (filter === "Outstanding" && fee.outstanding > 0) ||
-      (filter === "LMS Blocked" && student.lmsStatus === "Blocked") ||
-      (filter === "Clear" && fee.paymentStatus === "Clear");
-    return matchSearch && matchFilter;
-  });
+    } catch (err) {
+      setError("Unable to connect to backend API.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   function updateSelected(updates) {
     setSaved(false);
