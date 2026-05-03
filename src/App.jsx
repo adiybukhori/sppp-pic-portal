@@ -350,7 +350,7 @@ export default function PICPortalPreview() {
           <div>
             <p className="text-sm text-blue-100">Innovative University College</p>
             <h1 className="text-2xl font-bold">PIC Update Portal</h1>
-            <p className="text-sm text-blue-100">Programme access: {selected.program || "Assigned Programme"}</p>
+            <p className="text-sm text-blue-100">Manage student academic progress and payment updates</p>
           </div>
           <div className="flex gap-3">
             <Button variant="secondary" className="rounded-2xl" onClick={loadStudents}>Refresh Data</Button>
@@ -387,7 +387,7 @@ export default function PICPortalPreview() {
                     <option>MHUM</option>
                     <option>PhD</option>
                   </select>
-                <p className="text-xs text-slate-500">PIC can only view students under assigned programme.</p>
+                <p className="text-xs text-slate-500">View, filter and update student academic progress and payment status.</p>
               </div>
 
               <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name / student ID / IC" className="mb-3" />
