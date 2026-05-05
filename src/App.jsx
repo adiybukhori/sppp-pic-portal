@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbwbFFgoCoI6ynV1_PxiE5ObnGUKm6IbqNAA-a-8fiWR-TB7I0clL4m7D6bnFNBMDstg/exec";
+  "https://script.google.com/macros/s/AKfycbyUdL5K_IyG8kVr8lm-KR9772QQAhAZQ7GlOJswdw9ntrbC6OzyrIRz9jPrdpjwChN_/exec";
+
+const STUDENT_PORTAL_URL = "https://sppp-portal.vercel.app/";
 
 function money(n) {
   return new Intl.NumberFormat("en-MY", {
@@ -15,9 +17,12 @@ function money(n) {
 }
 
 function badgeClass(value) {
-  if (value === "Taken" || value === "Active" || value === "Clear") return "bg-emerald-100 text-emerald-700";
-  if (value === "Ongoing" || value === "Partially Paid") return "bg-blue-100 text-blue-700";
-  if (value === "Blocked" || value === "Unpaid" || value === "Outstanding") return "bg-red-100 text-red-700";
+  if (value === "Taken" || value === "Active" || value === "Clear")
+    return "bg-emerald-100 text-emerald-700";
+  if (value === "Ongoing" || value === "Partially Paid")
+    return "bg-blue-100 text-blue-700";
+  if (value === "Blocked" || value === "Unpaid" || value === "Outstanding")
+    return "bg-red-100 text-red-700";
   return "bg-slate-100 text-slate-600";
 }
 
@@ -41,7 +46,7 @@ function normalizeStudent(raw) {
     subjects: (raw.subjects || []).map((s) => ({
       code: s.code || s.subjectCode || s["Subject Code"],
       name: s.name || s.subjectName || s["Subject Name"],
-      status: s.status || s["Status"] || "Not Started",
+      status: s.status || s["Status"] || "Not Yet",
       displayOrder: s.displayOrder || s["Display Order"] || "",
     })),
   };
@@ -55,7 +60,10 @@ function calculateFee(student) {
 
   const taken = subjects.filter((s) => s.status === "Taken").length;
   const ongoing = subjects.filter((s) => s.status === "Ongoing").length;
-  const notYet = subjects.filter((s) => s.status === "Not Started").length;
+  const notYet = subjects.filter(
+    (s) => s.status === "Not Yet" || s.status === "Not Started"
+  ).length;
+
   const chargeable = subjects.length > 0 ? taken + ongoing : 0;
   const shouldPay = chargeable * feePerModule;
   const paidAmount = Number(student.paidAmount || 0);
@@ -65,13 +73,20 @@ function calculateFee(student) {
 
   const paymentStatus =
     student.paymentStatus ||
-    (chargeable === 0 ? "No Module Yet" : paidAmount <= 0 ? "Unpaid" : paidAmount < shouldPay ? "Partially Paid" : "Clear");
+    (chargeable === 0
+      ? "No Module Yet"
+      : paidAmount <= 0
+      ? "Unpaid"
+      : paidAmount < shouldPay
+      ? "Partially Paid"
+      : "Clear");
 
   return { feePerModule, taken, ongoing, notYet, chargeable, shouldPay, paidAmount, outstanding, paymentStatus };
 }
 
 export default function PICPortalPreview() {
   const [students, setStudents] = useState([]);
+  const [currentOfferings, setCurrentOfferings] = useState([]);
   const [selectedId, setSelectedId] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
@@ -119,6 +134,44 @@ export default function PICPortalPreview() {
     }
   }
 
+  async function loadCurrentOfferings(studentList) {
+    try {
+      const details = await Promise.all(
+        studentList.map(async (s) => {
+          const res = await fetch(
+            API_URL + "?action=getStudentDetail&studentId=" + encodeURIComponent(s.id)
+          );
+          const data = await res.json();
+          return data.success ? { student: s, subjects: data.student.subjects || [] } : null;
+        })
+      );
+
+      const offeringMap = {};
+
+      details.filter(Boolean).forEach(({ student, subjects }) => {
+        subjects.forEach((subject) => {
+          if (String(subject.status || "").toLowerCase() !== "ongoing") return;
+
+          const key = `${student.program}|${subject.subjectCode}|${subject.subjectName}`;
+
+          if (!offeringMap[key]) {
+            offeringMap[key] = {
+              program: student.program,
+              subject: `${subject.subjectCode} ${subject.subjectName}`,
+              total: 0,
+            };
+          }
+
+          offeringMap[key].total += 1;
+        });
+      });
+
+      setCurrentOfferings(Object.values(offeringMap).sort((a, b) => b.total - a.total));
+    } catch (err) {
+      setCurrentOfferings([]);
+    }
+  }
+
   async function loadStudents() {
     setLoading(true);
     setError("");
@@ -134,6 +187,7 @@ export default function PICPortalPreview() {
 
       const list = (data.students || []).map(normalizeStudent);
       setStudents(list);
+      loadCurrentOfferings(list);
 
       if (list.length > 0) {
         const currentId = selectedId || list[0].id;
@@ -155,6 +209,7 @@ export default function PICPortalPreview() {
 
   const selected = students.find((s) => s.id === selectedId);
   const selectedFee = selected ? calculateFee(selected) : null;
+  const programmes = [...new Set(students.map((s) => s.program).filter(Boolean))];
 
   const overall = useMemo(() => {
     const blocked = students.filter((s) => s.lmsStatus === "Blocked").length;
@@ -165,19 +220,18 @@ export default function PICPortalPreview() {
 
   const filteredStudents = students.filter((student) => {
     const fee = calculateFee(student);
-  
     const keyword = `${student.name} ${student.id} ${student.ic}`.toLowerCase();
     const matchSearch = keyword.includes(search.toLowerCase());
-  
+
     const matchProgram =
       programFilter === "All" || student.program === programFilter;
-  
+
     const matchFilter =
       filter === "All" ||
       (filter === "Outstanding" && fee.outstanding > 0) ||
       (filter === "LMS Blocked" && student.lmsStatus === "Blocked") ||
       (filter === "Clear" && fee.paymentStatus === "Clear");
-  
+
     return matchSearch && matchFilter && matchProgram;
   });
 
@@ -197,6 +251,14 @@ export default function PICPortalPreview() {
             }
           : s
       )
+    );
+  }
+
+  function openStudentProfile(student) {
+    window.open(
+      `${STUDENT_PORTAL_URL}?studentId=${encodeURIComponent(student.id)}`,
+      "_blank",
+      "noopener,noreferrer"
     );
   }
 
@@ -232,6 +294,7 @@ export default function PICPortalPreview() {
 
       setSaved(true);
       await loadStudentDetail(selected.id);
+      await loadCurrentOfferings(students);
     } catch (err) {
       setError("Unable to save update.");
     }
@@ -262,28 +325,29 @@ export default function PICPortalPreview() {
 
       setSaved(true);
       await loadStudentDetail(selected.id);
+      await loadCurrentOfferings(students);
     } catch (err) {
       setError("Unable to initialize subject list.");
     }
   }
 
-    function handleLogin() {
-      if (username === "ipgs" && password === "ipgs2026") {
-        setIsLoggedIn(true);
-        setLoginError("");
-      } else {
-        setLoginError("Invalid username or password.");
-      }
+  function handleLogin() {
+    if (username === "ipgs" && password === "ipgs2026") {
+      setIsLoggedIn(true);
+      setLoginError("");
+    } else {
+      setLoginError("Invalid username or password.");
     }
+  }
 
-    if (!isLoggedIn) {
+  if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 flex items-center justify-center p-6">
         <Card className="w-full max-w-md rounded-3xl border border-slate-200 bg-white shadow-2xl">
           <CardContent className="p-8">
             <h1 className="text-2xl font-bold text-slate-900">PIC Update Portal</h1>
             <p className="text-sm text-slate-500 mt-1">Login to continue</p>
-  
+
             <div className="mt-6 space-y-4">
               <div>
                 <label className="text-sm font-medium text-slate-700">Username</label>
@@ -294,7 +358,7 @@ export default function PICPortalPreview() {
                   placeholder="Username"
                 />
               </div>
-  
+
               <div>
                 <label className="text-sm font-medium text-slate-700">Password</label>
                 <Input
@@ -305,9 +369,9 @@ export default function PICPortalPreview() {
                   placeholder="Password"
                 />
               </div>
-  
+
               {loginError && <p className="text-sm text-red-600">{loginError}</p>}
-  
+
               <Button
                 onClick={handleLogin}
                 className="w-full rounded-2xl bg-blue-950 hover:bg-blue-900"
@@ -320,7 +384,7 @@ export default function PICPortalPreview() {
       </div>
     );
   }
-  
+
   if (loading) {
     return <div className="min-h-screen bg-slate-100 flex items-center justify-center text-slate-600">Loading PIC Portal...</div>;
   }
@@ -371,23 +435,71 @@ export default function PICPortalPreview() {
           <Stat title="Payment Clear" value={overall.clear} />
         </div>
 
+        <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <h2 className="font-bold text-lg">Current Subject Offering</h2>
+                <p className="text-sm text-slate-500">
+                  Subjects currently marked as Ongoing across all postgraduate programmes.
+                </p>
+              </div>
+              <span className="rounded-full bg-blue-100 text-blue-700 px-4 py-1 text-xs font-bold">
+                Live from progress data
+              </span>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-slate-600">
+                  <tr>
+                    <th className="text-left p-3">Programme</th>
+                    <th className="text-left p-3">Subject Currently Offered</th>
+                    <th className="text-right p-3">Students Ongoing</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentOfferings.length === 0 ? (
+                    <tr>
+                      <td colSpan="3" className="p-4 text-slate-500">
+                        No ongoing subject found.
+                      </td>
+                    </tr>
+                  ) : (
+                    currentOfferings.map((item) => (
+                      <tr key={`${item.program}-${item.subject}`} className="border-t border-slate-200 hover:bg-slate-50">
+                        <td className="p-3">
+                          <span className="rounded-full bg-blue-100 text-blue-700 px-3 py-1 text-xs font-bold">
+                            {item.program}
+                          </span>
+                        </td>
+                        <td className="p-3 font-semibold text-slate-900">{item.subject}</td>
+                        <td className="p-3 text-right font-bold">{item.total}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <Card className="rounded-3xl shadow-sm lg:col-span-4">
             <CardContent className="p-5">
               <div className="mb-4">
                 <h2 className="font-bold text-lg">Student List</h2>
-                    <select
-                    value={programFilter}
-                    onChange={(e) => setProgramFilter(e.target.value)}
-                    className="w-full mt-2 rounded-xl border border-slate-200 p-2 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
-                  >
-                    <option>All</option>
-                    <option>MBA</option>
-                    <option>MBM</option>
-                    <option>MHUM</option>
-                    <option>PhD</option>
-                  </select>
-                <p className="text-xs text-slate-500">View, filter and update student academic progress and payment status.</p>
+                <select
+                  value={programFilter}
+                  onChange={(e) => setProgramFilter(e.target.value)}
+                  className="w-full mt-2 rounded-xl border border-slate-200 p-2 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                >
+                  <option>All</option>
+                  {programmes.map((p) => (
+                    <option key={p}>{p}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500 mt-2">View, filter and update student academic progress and payment status.</p>
               </div>
 
               <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name / student ID / IC" className="mb-3" />
@@ -451,6 +563,12 @@ export default function PICPortalPreview() {
                         <p className="text-sm text-slate-500">{selected.id} · {selected.ic}</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
+                        <Button
+                          className="rounded-full bg-slate-900 text-white px-5 py-2"
+                          onClick={() => openStudentProfile(selected)}
+                        >
+                          View Student Profile
+                        </Button>
                         <span className="rounded-full bg-blue-100 text-blue-700 px-3 py-1 text-xs font-bold">{selected.program}</span>
                         <span className="rounded-full bg-slate-100 text-slate-700 px-3 py-1 text-xs font-bold">{selected.category}</span>
                         <span className={`rounded-full px-3 py-1 text-xs font-bold ${badgeClass(selected.lmsStatus)}`}>LMS: {selected.lmsStatus}</span>
@@ -479,7 +597,7 @@ export default function PICPortalPreview() {
                     <div className="text-right text-xs text-slate-500">
                       <p>{selectedFee.taken} Taken</p>
                       <p>{selectedFee.ongoing} Ongoing</p>
-                      <p>{selectedFee.notYet} Not Started</p>
+                      <p>{selectedFee.notYet} Not Yet</p>
                     </div>
                   </div>
 
@@ -556,7 +674,7 @@ export default function PICPortalPreview() {
                                         : "bg-slate-100 text-slate-600"
                                     }`}
                                   >
-                                    <option>Not Started</option>
+                                    <option>Not Yet</option>
                                     <option>Ongoing</option>
                                     <option>Taken</option>
                                   </select>
@@ -582,7 +700,7 @@ export default function PICPortalPreview() {
 
                       <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-3 shadow-sm">
                         <label className="text-xs text-slate-500">Update Paid Amount</label>
-                        <Input type="number" value={paymentInput} onChange={(e) => setPaymentInput(e.target.value)} className="bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100" />
+                        <Input type="number" value={paymentInput} onChange={(e) => setPaymentInput(e.target.value)} className="bg-white border border-slate-200 rounded-xl shadow-sm" />
                         <Button variant="outline" className="w-full rounded-xl text-xs bg-white border border-slate-200 shadow-sm hover:bg-slate-50" onClick={() => updateSelected({ paidAmount: Number(paymentInput || 0) })}>
                           Update Paid Amount
                         </Button>
@@ -607,7 +725,7 @@ export default function PICPortalPreview() {
                       <select
                         value={selected.lmsStatus}
                         onChange={(e) => updateSelected({ lmsStatus: e.target.value })}
-                        className="w-full mt-1 rounded-xl border border-slate-200 p-2 bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                        className="w-full mt-1 rounded-xl border border-slate-200 p-2 bg-white text-sm shadow-sm"
                       >
                         <option>Active</option>
                         <option>Blocked</option>
@@ -620,7 +738,7 @@ export default function PICPortalPreview() {
                       <textarea
                         value={selected.picRemark}
                         onChange={(e) => updateSelected({ picRemark: e.target.value })}
-                        className="w-full mt-1 rounded-xl border border-slate-200 p-3 min-h-24 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                        className="w-full mt-1 rounded-xl border border-slate-200 p-3 min-h-24 text-sm bg-white shadow-sm"
                       />
                     </div>
 
