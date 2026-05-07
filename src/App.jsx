@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbyUdL5K_IyG8kVr8lm-KR9772QQAhAZQ7GlOJswdw9ntrbC6OzyrIRz9jPrdpjwChN_/exec";
+  "https://script.google.com/macros/s/AKfycbxs9IXJ_OsG39Oj3jGfGVOIKsuCtctREypUuaQ8gowO_dck8H3af04XRPW4h3de9Bs3/exec";
 
 const STUDENT_PORTAL_URL = "https://sppp-portal.vercel.app/";
 
@@ -100,6 +100,7 @@ export default function PICPortalPreview() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [programFilter, setProgramFilter] = useState("All");
+  const [dashboardSummary, setDashboardSummary] = useState(null);
 
   async function loadStudentDetail(studentId) {
     if (!studentId) return;
@@ -172,6 +173,23 @@ export default function PICPortalPreview() {
     }
   }
 
+  async function loadCurrentOfferings(studentList) {
+  ...
+}
+
+async function loadDashboardSummary() {
+  try {
+    const res = await fetch(API_URL + "?action=getDashboardSummary");
+    const data = await res.json();
+
+    if (data.success) {
+      setDashboardSummary(data.summary);
+    }
+  } catch (err) {
+    console.error("Unable to load dashboard summary", err);
+  }
+}
+
   async function loadStudents() {
     setLoading(true);
     setError("");
@@ -188,6 +206,7 @@ export default function PICPortalPreview() {
       const list = (data.students || []).map(normalizeStudent);
       setStudents(list);
       loadCurrentOfferings(list);
+      loadDashboardSummary();
 
       if (list.length > 0) {
         const currentId = selectedId || list[0].id;
@@ -428,11 +447,22 @@ export default function PICPortalPreview() {
       <main className="max-w-7xl mx-auto p-6 space-y-6">
         {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Stat title="Total Students" value={overall.total} />
-          <Stat title="Total Outstanding" value={money(overall.totalOutstanding)} danger={overall.totalOutstanding > 0} />
-          <Stat title="LMS Blocked" value={overall.blocked} danger={overall.blocked > 0} />
-          <Stat title="Payment Clear" value={overall.clear} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <Stat title="Total Students" value={dashboardSummary?.totalStudents ?? overall.total} />
+          <Stat
+            title="Total Enrolled Fee Value"
+            value={money(dashboardSummary?.totalEnrolledFeeValue || 0)}
+          />
+          <Stat
+            title="Total Should Pay"
+            value={money(dashboardSummary?.totalShouldPay || 0)}
+          />
+          <Stat
+            title="Total Outstanding"
+            value={money(dashboardSummary?.totalOutstanding ?? overall.totalOutstanding)}
+            danger={(dashboardSummary?.totalOutstanding ?? overall.totalOutstanding) > 0}
+          />
+          <Stat title="Payment Clear" value={dashboardSummary?.paymentClear ?? overall.clear} />
         </div>
 
         <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
