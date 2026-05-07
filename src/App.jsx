@@ -174,7 +174,6 @@ export default function PICPortalPreview() {
   }
 
   async function loadCurrentOfferings(studentList) {
-  ...
 }
 
 async function loadDashboardSummary() {
