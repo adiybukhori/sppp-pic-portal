@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbxs9IXJ_OsG39Oj3jGfGVOIKsuCtctREypUuaQ8gowO_dck8H3af04XRPW4h3de9Bs3/exec";
+  "https://script.google.com/macros/s/AKfycbybD2rl8DtNK4iNHKAKpRWuYmLk4LfLoln-gybsJAjcQ03dRmentEAZOzkSBMQlrMz4/exec";
 
 const STUDENT_PORTAL_URL = "https://sppp-portal.vercel.app/";
 
@@ -459,7 +459,7 @@ async function loadDashboardSummary() {
             value={money(dashboardSummary?.totalOutstanding ?? overall.totalOutstanding)}
             danger={(dashboardSummary?.totalOutstanding ?? overall.totalOutstanding) > 0}
           />
-          <Stat title="Payment Clear" value={dashboardSummary?.paymentClear ?? overall.clear} />
+          <Stat title="Total Collected" value={money(dashboardSummary?.totalCollected || 0)} />
         </div>
 
         <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
