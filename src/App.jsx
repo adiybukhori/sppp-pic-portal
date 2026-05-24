@@ -8,6 +8,39 @@ const API_URL =
 
 const STUDENT_PORTAL_URL = "https://sppp-portal.vercel.app/";
 
+const CACHE_KEY_STUDENTS = "SPPP_PIC_STUDENTS_CACHE";
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+function getCachedStudents() {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY_STUDENTS);
+    if (!cached) return null;
+
+    const parsed = JSON.parse(cached);
+    const isExpired = Date.now() - parsed.timestamp > CACHE_DURATION;
+
+    if (isExpired) return null;
+
+    return parsed.students || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function setCachedStudents(students) {
+  try {
+    localStorage.setItem(
+      CACHE_KEY_STUDENTS,
+      JSON.stringify({
+        timestamp: Date.now(),
+        students,
+      })
+    );
+  } catch (err) {
+    console.warn("Unable to save cache", err);
+  }
+}
+
 function money(n) {
   return new Intl.NumberFormat("en-MY", {
     style: "currency",
@@ -187,37 +220,61 @@ async function loadDashboardSummary() {
   }
 }
 
-  async function loadStudents() {
-    setLoading(true);
-    setError("");
+ async function loadStudents(forceRefresh = false) {
+  setLoading(true);
+  setError("");
 
-    try {
-      const res = await fetch(API_URL + "?action=getStudents");
-      const data = await res.json();
+  try {
+    if (!forceRefresh) {
+      const cachedList = getCachedStudents();
 
-      if (!data.success) {
-        setError(data.message || "Unable to load student data.");
+      if (cachedList && cachedList.length > 0) {
+        setStudents(cachedList);
+
+        const currentId = selectedId || cachedList[0].id;
+        setSelectedId(currentId);
+
+        const existing = cachedList.find((s) => s.id === currentId);
+        setPaymentInput(existing?.paidAmount || 0);
+
+        setLoading(false);
+
+        await loadStudentDetail(currentId);
+        loadDashboardSummary();
+
         return;
       }
-
-      const list = (data.students || []).map(normalizeStudent);
-      setStudents(list);
-      loadCurrentOfferings(list);
-      loadDashboardSummary();
-
-      if (list.length > 0) {
-        const currentId = selectedId || list[0].id;
-        setSelectedId(currentId);
-        const existing = list.find((s) => s.id === currentId);
-        setPaymentInput(existing?.paidAmount || 0);
-        await loadStudentDetail(currentId);
-      }
-    } catch (err) {
-      setError("Unable to connect to backend API.");
-    } finally {
-      setLoading(false);
     }
+
+    const res = await fetch(API_URL + "?action=getStudents");
+    const data = await res.json();
+
+    if (!data.success) {
+      setError(data.message || "Unable to load student data.");
+      return;
+    }
+
+    const list = (data.students || []).map(normalizeStudent);
+
+    setStudents(list);
+    setCachedStudents(list);
+    loadDashboardSummary();
+
+    if (list.length > 0) {
+      const currentId = selectedId || list[0].id;
+      setSelectedId(currentId);
+
+      const existing = list.find((s) => s.id === currentId);
+      setPaymentInput(existing?.paidAmount || 0);
+
+      await loadStudentDetail(currentId);
+    }
+  } catch (err) {
+    setError("Unable to connect to backend API.");
+  } finally {
+    setLoading(false);
   }
+}
 
   useEffect(() => {
     loadStudents();
@@ -433,7 +490,9 @@ async function loadDashboardSummary() {
             <p className="text-sm text-blue-100">Manage student academic progress and payment updates</p>
           </div>
           <div className="flex gap-3">
-            <Button variant="secondary" className="rounded-2xl" onClick={loadStudents}>Refresh Data</Button>
+            <Button variant="secondary" className="rounded-2xl" onClick={() => loadStudents(true)}>
+              Refresh Data
+            </Button>
             <Button variant="secondary" className="rounded-2xl" onClick={() => setIsLoggedIn(false)}>
               Logout
             </Button>
