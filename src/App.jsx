@@ -126,6 +126,7 @@ export default function PICPortalPreview() {
   const [saved, setSaved] = useState(false);
   const [paymentInput, setPaymentInput] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -220,8 +221,13 @@ async function loadDashboardSummary() {
   }
 }
 
- async function loadStudents(forceRefresh = false) {
-  setLoading(true);
+async function loadStudents(forceRefresh = false) {
+  if (students.length === 0) {
+    setLoading(true);
+  } else {
+    setRefreshing(true);
+  }
+
   setError("");
 
   try {
@@ -236,8 +242,6 @@ async function loadDashboardSummary() {
 
         const existing = cachedList.find((s) => s.id === currentId);
         setPaymentInput(existing?.paidAmount || 0);
-
-        setLoading(false);
 
         await loadStudentDetail(currentId);
         loadDashboardSummary();
@@ -258,13 +262,16 @@ async function loadDashboardSummary() {
 
     setStudents(list);
     setCachedStudents(list);
-    loadDashboardSummary();
+
+    await loadDashboardSummary();
 
     if (list.length > 0) {
       const currentId = selectedId || list[0].id;
+
       setSelectedId(currentId);
 
       const existing = list.find((s) => s.id === currentId);
+
       setPaymentInput(existing?.paidAmount || 0);
 
       await loadStudentDetail(currentId);
@@ -273,6 +280,7 @@ async function loadDashboardSummary() {
     setError("Unable to connect to backend API.");
   } finally {
     setLoading(false);
+    setRefreshing(false);
   }
 }
 
@@ -458,7 +466,7 @@ async function loadDashboardSummary() {
     );
   }
 
-  if (loading) {
+  if (loading && students.length === 0) {
     return <div className="min-h-screen bg-slate-100 flex items-center justify-center text-slate-600">Loading PIC Portal...</div>;
   }
 
@@ -490,8 +498,13 @@ async function loadDashboardSummary() {
             <p className="text-sm text-blue-100">Manage student academic progress and payment updates</p>
           </div>
           <div className="flex gap-3">
-            <Button variant="secondary" className="rounded-2xl" onClick={() => loadStudents(true)}>
-              Refresh Data
+            <Button
+              variant="secondary"
+              className="rounded-2xl"
+              onClick={() => loadStudents(true)}
+              disabled={refreshing}
+            >
+              {refreshing ? "Refreshing..." : "Refresh Data"}
             </Button>
             <Button variant="secondary" className="rounded-2xl" onClick={() => setIsLoggedIn(false)}>
               Logout
