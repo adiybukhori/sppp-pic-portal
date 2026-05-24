@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbxTjY6TrfGxqhlGFyZHu4UhDs07qQ4DkQMnnpsAyv06lHhW2rN0aKBKU1CcGDrKoUmY/exec";
+  "https://script.google.com/macros/s/AKfycbyic9bcS0S7B8UQ0BaBC1FG3v32ujbTYQbDNRRLtL1hgz2gTKypW92vGYA90G9eQBZ9/exec";
 
 const STUDENT_PORTAL_URL = "https://sppp-portal.vercel.app/";
 
@@ -169,44 +169,20 @@ export default function PICPortalPreview() {
     }
   }
 
-  async function loadCurrentOfferings(studentList) {
-    try {
-      const details = await Promise.all(
-        studentList.map(async (s) => {
-          const res = await fetch(
-            API_URL + "?action=getStudentDetail&studentId=" + encodeURIComponent(s.id)
-          );
-          const data = await res.json();
-          return data.success ? { student: s, subjects: data.student.subjects || [] } : null;
-        })
-      );
+  async function loadCurrentOfferings() {
+  try {
+    const res = await fetch(API_URL + "?action=getCurrentOfferings");
+    const data = await res.json();
 
-      const offeringMap = {};
-
-      details.filter(Boolean).forEach(({ student, subjects }) => {
-        subjects.forEach((subject) => {
-          if (String(subject.status || "").toLowerCase() !== "ongoing") return;
-
-          const key = `${student.program}|${subject.subjectCode}|${subject.subjectName}`;
-
-          if (!offeringMap[key]) {
-            offeringMap[key] = {
-              program: student.program,
-              subject: `${subject.subjectCode} ${subject.subjectName}`,
-              total: 0,
-            };
-          }
-
-          offeringMap[key].total += 1;
-        });
-      });
-
-      setCurrentOfferings(Object.values(offeringMap).sort((a, b) => b.total - a.total));
-    } catch (err) {
+    if (data.success) {
+      setCurrentOfferings(data.offerings || []);
+    } else {
       setCurrentOfferings([]);
     }
+  } catch (err) {
+    setCurrentOfferings([]);
   }
-
+}
 
 async function loadDashboardSummary() {
   try {
@@ -375,7 +351,7 @@ async function loadStudents(forceRefresh = false) {
 
       setSaved(true);
       await loadStudentDetail(selected.id);
-      await loadCurrentOfferings(students);
+      await loadCurrentOfferings();
     } catch (err) {
       setError("Unable to save update.");
     }
