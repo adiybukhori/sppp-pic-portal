@@ -511,7 +511,19 @@ async function loadStudents(forceRefresh = false) {
           />
           <Stat title="Total Collected" value={money(dashboardSummary?.totalCollected || 0)} />
         </div>
-
+        <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <CardContent className="p-6">
+            <h2 className="font-bold text-lg mb-4">Student Count by Programme</h2>
+        
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <MiniInfo label="MBA" value={dashboardSummary?.mbaStudents ?? 0} />
+              <MiniInfo label="MBM" value={dashboardSummary?.mbmStudents ?? 0} />
+              <MiniInfo label="MHUM" value={dashboardSummary?.mhumStudents ?? 0} />
+              <MiniInfo label="MIS" value={dashboardSummary?.misStudents ?? 0} />
+              <MiniInfo label="PhD" value={dashboardSummary?.phdStudents ?? 0} />
+            </div>
+          </CardContent>
+        </Card>
         <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-start justify-between gap-4 mb-5">
