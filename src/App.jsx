@@ -220,7 +220,8 @@ async function loadStudents(forceRefresh = false) {
         setPaymentInput(existing?.paidAmount || 0);
 
         await loadStudentDetail(currentId);
-        loadDashboardSummary();
+        await loadDashboardSummary();
+        await loadCurrentOfferings();
 
         return;
       }
@@ -240,6 +241,7 @@ async function loadStudents(forceRefresh = false) {
     setCachedStudents(list);
 
     await loadDashboardSummary();
+    await loadCurrentOfferings();
 
     if (list.length > 0) {
       const currentId = selectedId || list[0].id;
